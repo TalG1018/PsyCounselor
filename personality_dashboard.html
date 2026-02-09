@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>心理画像分析仪表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .dashboard-content {
+            padding: 30px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .card-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #4b6cb7;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #4b6cb7;
+        }
+
+        .btn {
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(75, 108, 183, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .traits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .trait-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 5px solid #4b6cb7;
+            transition: transform 0.3s;
+        }
+
+        .trait-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .trait-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .trait-score {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4b6cb7;
+            margin: 10px 0;
+        }
+
+        .trait-level {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: inline-block;
+            margin: 5px 0;
+        }
+
+        .trait-description {
+            color: #666;
+            line-height: 1.5;
+            margin: 10px 0;
+        }
+
+        .recommendations {
+            background: #e8f5e8;
+            border-left: 5px solid #4caf50;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4b6cb7;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .radar-chart-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+        }
+
+        .history-section {
+            margin-top: 30px;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .message.user {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+
+        .message.ai {
+            background: #f3e5f5;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .timestamp {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                flex-direction: column;
+            }
+            
+            .traits-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 心理画像分析仪</h1>
+            <p>基于大五人格理论的深度心理特征分析</p>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- 输入区域 -->
+            <div class="card">
+                <div class="card-title">📝 对话输入</div>
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="userId">用户ID:</label>
+                        <input type="text" id="userId" placeholder="请输入用户标识" value="user_001">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="conversationHistory">对话历史 (每行一条):</label>
+                    <textarea id="conversationHistory" rows="8" placeholder="请输入用户的对话历史记录&#10;例如：&#10;我喜欢尝试新的方法解决问题&#10;我总是担心失败&#10;我觉得自己很有创造力&#10;有时候会感到焦虑..."></textarea>
+                </div>
+                <button class="btn" onclick="analyzePersonality()" id="analyzeBtn">开始分析</button>
+            </div>
+
+            <!-- 结果展示区域 -->
+            <div id="resultsSection" style="display: none;">
+                <div class="card">
+                    <div class="card-title">📊 人格雷达图</div>
+                    <div class="radar-chart-container">
+                        <canvas id="personalityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🎯 五大维度分析</div>
+                    <div class="traits-grid" id="traitsGrid">
+                        <!-- 动态生成人格特质卡片 -->
+                    </div>
+                </div>
+
+                <div class="card recommendations">
+                    <div class="card-title">💡 个性化建议</div>
+                    <div id="recommendationsList">
+                        <!-- 动态生成建议列表 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载状态 -->
+            <div id="loadingSection" style="display: none;" class="loading">
+                <div class="spinner"></div>
+                <p>正在分析您的心理特征...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let personalityChart = null;
+
+        async function analyzePersonality() {
+            const userId = document.getElementById('userId').value;
+            const conversationText = document.getElementById('conversationHistory').value;
+            
+            if (!userId || !conversationText) {
+                alert('请填写用户ID和对话历史');
+                return;
+            }
+
+            // 显示加载状态
+            document.getElementById('loadingSection').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('analyzeBtn').disabled = true;
+
+            try {
+                // 准备对话历史数组
+                const conversationHistory = conversationText.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0);
+
+                // 调用API
+                const response = await fetch('/personality/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        conversation_history: conversationHistory
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    displayResults(data.profile);
+                } else {
+                    throw new Error(data.detail || '分析失败');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('分析过程中出现错误: ' + error.message);
+            } finally {
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+
+        function displayResults(profile) {
+            // 显示结果区域
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // 准备雷达图数据
+            const traitsData = [];
+            const labels = [];
+            
+            Object.entries(profile.personality_traits).forEach(([trait, data]) => {
+                labels.push(getTraitChineseName(trait));
+                traitsData.push(data.score);
+            });
+
+            // 创建雷达图
+            createRadarChart(labels, traitsData);
+
+            // 显示人格特质卡片
+            displayTraitsCards(profile.personality_traits);
+
+            // 显示建议
+            displayRecommendations(profile.recommendations);
+        }
+
+        function createRadarChart(labels, data) {
+            const ctx = document.getElementById('personalityChart').getContext('2d');
+            
+            if (personalityChart) {
+                personalityChart.destroy();
+            }
+
+            personalityChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '人格特质得分',
+                        data: data,
+                        backgroundColor: 'rgba(75, 108, 183, 0.2)',
+                        borderColor: 'rgba(75, 108, 183, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(75, 108, 183, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(75, 108, 183, 1)'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 100,
+                            ticks: {
+                                stepSize: 20
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function displayTraitsCards(traits) {
+            const grid = document.getElementById('traitsGrid');
+            grid.innerHTML = '';
+
+            Object.entries(traits).forEach(([trait, data]) => {
+                const card = document.createElement('div');
+                card.className = 'trait-card';
+                
+                card.innerHTML = `
+                    <div class="trait-name">${getTraitChineseName(trait)}</div>
+                    <div class="trait-score">${data.score.toFixed(1)}</div>
+                    <div class="trait-level">${data.level}</div>
+                    <div class="trait-description">${data.description}</div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function displayRecommendations(recommendations) {
+            const container = document.getElementById('recommendationsList');
+            container.innerHTML = '';
+
+            recommendations.forEach((rec, index) => {
+                const recElement = document.createElement('div');
+                recElement.className = 'message ai';
+                recElement.innerHTML = `
+                    <strong>建议 ${index + 1}:</strong> ${rec}
+                    <div class="timestamp">基于人格特征分析生成</div>
+                `;
+                container.appendChild(recElement);
+            });
+        }
+
+        function getTraitChineseName(trait) {
+            const traitNames = {
+                'openness': '开放性',
+                'conscientiousness': '尽责性',
+                'extraversion': '外向性',
+                'agreeableness': '宜人性',
+                'neuroticism': '神经质'
+            };
+            return traitNames[trait] || trait;
+        }
+
+        // 示例数据填充
+        window.onload = function() {
+            const sampleConversation = `我喜欢尝试不同的解决方法
+有时候会担心失败
+我觉得自己比较有创造力
+经常思考人生的意义
+喜欢和朋友们交流想法
+偶尔会感到焦虑但能自我调节
+做事比较有计划性
+重视他人的感受`;
+            
+            document.getElementById('conversationHistory').value = sampleConversation;
+        };
+    </script>
+</body>
+</html>

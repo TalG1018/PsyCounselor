@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个性化心理咨询建议仪表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #ff6b6b 0%, #ffa502 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .dashboard-content {
+            padding: 30px;
+        }
+
+        .control-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-group label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .input-group input, .input-group select {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .recommendation-item {
+            background: white;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 5px 5px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .recommendation-item h4 {
+            color: #007bff;
+            margin-bottom: 8px;
+        }
+
+        .recommendation-item p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .priority-high {
+            border-left-color: #dc3545;
+        }
+
+        .priority-medium {
+            border-left-color: #ffc107;
+        }
+
+        .priority-low {
+            border-left-color: #28a745;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #007bff;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #007bff;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #007bff;
+        }
+
+        .action-plan {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .plan-category {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .plan-category.immediate {
+            border-top: 4px solid #dc3545;
+        }
+
+        .plan-category.short-term {
+            border-top: 4px solid #ffc107;
+        }
+
+        .plan-category.long-term {
+            border-top: 4px solid #28a745;
+        }
+
+        .plan-category h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .plan-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .resource-category {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .resource-category h4 {
+            color: #007bff;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        .resource-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .resource-item:last-child {
+            border-bottom: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-plan {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 个性化心理咨询建议仪表板</h1>
+            <p>基于情绪轨迹和人格特征的定制化心理健康建议</p>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <div class="input-group">
+                    <label for="userId">用户ID:</label>
+                    <input type="text" id="userId" value="user_default" placeholder="输入用户ID">
+                </div>
+                <button class="btn btn-primary" onclick="generateRecommendations()">
+                    🎯 生成个性化建议
+                </button>
+                <button class="btn btn-success" onclick="loadSampleData()">
+                    📊 加载示例数据
+                </button>
+                <span id="statusIndicator"></span>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <div id="mainContent">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>请点击"生成个性化建议"开始分析</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 示例数据
+        const sampleData = {
+            current_assessment: {
+                emotion_trend: "improving",
+                stress_level: "moderate",
+                primary_concerns: ["work", "relationship"],
+                recent_patterns: ["情绪逐步稳定", "工作压力有所缓解"]
+            },
+            personality_insights: [
+                "您的开放性得分较高（80分），具有很强的创造力和好奇心",
+                "神经质维度得分75分，情绪敏感度较高，建议建立稳定的情绪管理routine",
+                "宜人性相对较低（45分），在人际交往中可以更多关注他人需求"
+            ],
+            targeted_recommendations: [
+                "当前压力水平适中，是进行自我提升的好时机",
+                "继续保持情绪改善的良好势头",
+                "建议主动扩展社交圈，增加积极的人际互动"
+            ],
+            action_plan: {
+                immediate_actions: [
+                    "今天进行15分钟冥想或深呼吸练习",
+                    "记录今天的三个感恩时刻",
+                    "进行30分钟喜欢的运动"
+                ],
+                short_term_goals: [
+                    "建立每周固定的情绪记录习惯",
+                    "尝试两种新的放松技巧并评估效果",
+                    "安排一次深度的朋友或家人交流"
+                ],
+                long_term_objectives: [
+                    "培养稳定的运动习惯（每周3-4次）",
+                    "发展一项创造性爱好",
+                    "建立可靠的社交支持网络"
+                ]
+            },
+            immediate_interventions: [
+                "继续保持当前的良好状态",
+                "适时进行放松调节"
+            ],
+            resources: {
+                apps_tools: ["情绪追踪日记APP", "Headspace冥想APP"],
+                books_articles: ["《情绪急救》- Guy Winch", "《深度工作》- Cal Newport"],
+                professional_help: ["建议预约心理咨询师"],
+                online_communities: ["豆瓣情感互助小组"]
+            }
+        };
+
+        function showStatus(message, type = 'info') {
+            const indicator = document.getElementById('statusIndicator');
+            const statusClass = type === 'success' ? 'status-success' : 
+                               type === 'warning' ? 'status-warning' : 'status-error';
+            indicator.innerHTML = `<span class="status-indicator ${statusClass}">${message}</span>`;
+        }
+
+        function loadSampleData() {
+            showStatus('加载示例数据...', 'info');
+            setTimeout(() => {
+                renderRecommendations(sampleData);
+                showStatus('示例数据加载完成', 'success');
+            }, 1000);
+        }
+
+        async function generateRecommendations() {
+            const userId = document.getElementById('userId').value || 'user_default';
+            showStatus('正在生成个性化建议...', 'info');
+            
+            try {
+                // 这里应该调用实际的API
+                // const response = await fetch(`/recommendations/user/${userId}`);
+                // const data = await response.json();
+                
+                // 模拟API调用延迟
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                renderRecommendations(sampleData);
+                showStatus('个性化建议生成完成', 'success');
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('生成建议时出错，请重试', 'error');
+            }
+        }
+
+        function renderRecommendations(data) {
+            const content = `
+                <div class="grid">
+                    <!-- 当前状态评估 -->
+                    <div class="card">
+                        <h3>📊 当前状态评估</h3>
+                        <div class="recommendation-item priority-${getPriorityClass(data.current_assessment.stress_level)}">
+                            <h4>情绪趋势: ${getStatusText(data.current_assessment.emotion_trend)}</h4>
+                            <p>压力水平: ${getStressLevelText(data.current_assessment.stress_level)}</p>
+                            <p>主要关注领域: ${data.current_assessment.primary_concerns.join(', ')}</p>
+                            <p>近期模式: ${data.current_assessment.recent_patterns.join('; ')}</p>
+                        </div>
+                    </div>
+
+                    <!-- 人格洞察 -->
+                    <div class="card">
+                        <h3>🧠 人格特征洞察</h3>
+                        ${data.personality_insights.map(insight => `
+                            <div class="recommendation-item">
+                                <p>${insight}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- 针对性建议 -->
+                    <div class="card">
+                        <h3>🎯 针对性建议</h3>
+                        ${data.targeted_recommendations.map(recommendation => `
+                            <div class="recommendation-item priority-medium">
+                                <p>${recommendation}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- 紧急干预措施 -->
+                    <div class="card">
+                        <h3>🚨 紧急干预措施</h3>
+                        ${data.immediate_interventions.map(intervention => `
+                            <div class="recommendation-item priority-high">
+                                <p>${intervention}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- 行动计划时间线 -->
+                <div class="card">
+                    <h3>📋 个性化行动计划</h3>
+                    <div class="action-plan">
+                        <div class="plan-category immediate">
+                            <h4>⚡ 立即行动 (1-3天)</h4>
+                            ${data.action_plan.immediate_actions.map(action => `
+                                <div class="plan-item">${action}</div>
+                            `).join('')}
+                        </div>
+                        <div class="plan-category short-term">
+                            <h4>📅 短期目标 (1-4周)</h4>
+                            ${data.action_plan.short_term_goals.map(goal => `
+                                <div class="plan-item">${goal}</div>
+                            `).join('')}
+                        </div>
+                        <div class="plan-category long-term">
+                            <h4>🌟 长期目标 (1-3个月)</h4>
+                            ${data.action_plan.long_term_objectives.map(objective => `
+                                <div class="plan-item">${objective}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 资源推荐 -->
+                <div class="card">
+                    <h3>📚 推荐资源</h3>
+                    <div class="resources-grid">
+                        <div class="resource-category">
+                            <h4>📱 应用工具</h4>
+                            ${data.resources.apps_tools.map(tool => `
+                                <div class="resource-item">${tool}</div>
+                            `).join('')}
+                        </div>
+                        <div class="resource-category">
+                            <h4>📖 书籍文章</h4>
+                            ${data.resources.books_articles.map(book => `
+                                <div class="resource-item">${book}</div>
+                            `).join('')}
+                        </div>
+                        <div class="resource-category">
+                            <h4>👨‍⚕️ 专业帮助</h4>
+                            ${data.resources.professional_help.map(help => `
+                                <div class="resource-item">${help}</div>
+                            `).join('')}
+                        </div>
+                        <div class="resource-category">
+                            <h4>🌐 在线社区</h4>
+                            ${data.resources.online_communities.map(community => `
+                                <div class="resource-item">${community}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('mainContent').innerHTML = content;
+        }
+
+        function getPriorityClass(stressLevel) {
+            switch(stressLevel) {
+                case 'high': return 'high';
+                case 'moderate': return 'medium';
+                case 'low': return 'low';
+                default: return 'medium';
+            }
+        }
+
+        function getStatusText(trend) {
+            const texts = {
+                'improving': '正在改善 📈',
+                'declining': '有所下降 📉',
+                'stable': '保持稳定 ➖'
+            };
+            return texts[trend] || trend;
+        }
+
+        function getStressLevelText(level) {
+            const texts = {
+                'high': '较高 ⚠️',
+                'moderate': '适中 ✅',
+                'low': '较低 💚'
+            };
+            return texts[level] || level;
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('系统就绪，等待生成建议', 'info');
+        });
+    </script>
+</body>
+</html>
