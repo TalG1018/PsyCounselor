@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from memory import get_user_memory
 from emotion_analyzer import EmotionTracker
 from crisis_detector import CrisisDetector, CRISIS_RESPONSE
+from context_manager import ContextManager
 
 # 创建路由实例
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -27,6 +28,9 @@ index = None
 texts = None
 emotion_tracker = None
 crisis_detector = None
+
+# 上下文管理器字典（按用户ID存储）
+context_managers = {}
 
 class QueryRequest(BaseModel):
     query: str
@@ -105,13 +109,30 @@ async def ask(request: QueryRequest):
         else:
             risk_result = {"level": "low", "score": 0.0, "reason": "检测已跳过"}
 
-        # ========== 第3步：获取记忆上下文 ==========
-        memory_context = user_memory.get_recent_context(max_turns=2)
+        # ========== 第3步：获取记忆上下文（使用智能上下文管理）==========
+        # 获取或创建该用户的上下文管理器
+        if user_id not in context_managers:
+            context_managers[user_id] = ContextManager(max_tokens=128000)  # 128K token限制
+        
+        context_manager = context_managers[user_id]
+        
+        # 从用户记忆中获取更多历史对话用于初始化
+        memory_context_raw = user_memory.get_recent_context(max_turns=10)
         profile_summary = user_memory.get_profile_summary()
-
+        
+        # 如果是新会话，可以从历史记忆初始化上下文管理器
+        if len(context_manager.context_window) == 0 and memory_context_raw:
+            # 解析历史对话并添加到上下文管理器
+            # 这里可以添加更复杂的解析逻辑
+            pass
+        
+        # 获取格式化的上下文
+        memory_context = context_manager.get_formatted_context(max_turns=5)  # 最多取5轮
+        
         if memory_context:
-            stats = user_memory.get_stats()
-            print(f"📚 加载历史对话: {stats.get('stored_conversations', 0)} 轮")
+            stats = context_manager.get_statistics()
+            print(f"📚 上下文管理: {stats['total_turns']} 轮, {stats['total_tokens']} tokens, "
+                  f"利用率: {stats['utilization_rate']}%")
 
         # ========== 第4步：RAG检索 ==========
         query_embedding = embed_query(user_query)
@@ -167,13 +188,21 @@ async def ask(request: QueryRequest):
         if risk_result["level"] == "medium":
             answer += "\n\n---\n💙 温馨提示：如果你感到持续的情绪困扰，可随时拨打 **400-161-9995** 。"
 
-        # ========== 第7步：保存到记忆 ==========
+        # ========== 第7步：保存到记忆和上下文管理器 ==========
         user_memory.add_conversation(
             user_query,
             answer,
             risk_result["level"],
             risk_result.get("semantic_score", 0.0),
             len(contexts)
+        )
+        
+        # 添加到智能上下文管理器
+        context_manager.add_turn(
+            user_message=user_query,
+            ai_response=answer,
+            emotion_score=emotion_result["confidence"],
+            keywords=emotion_result.get("keywords", [])
         )
 
         processing_time = time.time() - start_time
